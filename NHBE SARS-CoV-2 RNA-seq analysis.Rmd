@@ -1,0 +1,140 @@
+---
+title: "NHBE SARS-CoV-2 RNA-seq analysis"
+author: "Meiyue Wang"
+date: "2026-03-21"
+output: html_document
+---
+# Project goal
+
+This project analyzes RNA-seq data from GSE147507.
+I focus on NHBE cells and compare SARS-CoV-2 infection with mock treatment.
+
+# Load packages
+
+```{r}
+library(DESeq2)
+library(tidyverse)
+library(ggplot2)
+```
+
+# Read data
+
+```{r}
+counts <- read.table("data/raw/GSE147507_RawReadCounts_Human.tsv",
+                      header = TRUE,
+                      sep = "\t",
+                      row.names = 1,
+                      check.names = FALSE
+                      )
+dim(counts)
+```
+Data retrieved successfully 21797=gene number 78=sample number
+
+# Select NHBE+Mock vs SARS-CoV-2
+
+## Check column names
+```{r}
+colnames(counts)
+```
+## Select desired groups
+
+```{r}
+samples <- colnames(counts)
+
+selected <- samples[
+  grepl("Series1_NHBE", samples) &
+  (grepl("Mock", samples) | grepl("SARS-CoV-2", samples))
+]
+
+selected
+counts_sub <- counts[, selected]
+
+dim(counts_sub)
+colnames(counts_sub)
+```
+## Look at the dimensions 
+
+```{r}
+dim(counts_sub)
+```
+
+# Build sample metadata (样本信息表)
+
+```{r}
+coldata <- data.frame(
+  row.names = colnames(counts_sub),
+  condition = factor(
+    c("control", "control", "control",
+      "infected", "infected", "infected"),
+    levels = c("control", "infected")
+  )
+)
+
+coldata
+```
+# DESeq2 analysis
+
+## Filter out low-expression genes
+
+```{r}
+keep <- rowSums(counts_sub >= 10) >= 3
+counts_filtered <- counts_sub[keep, ]
+
+dim(counts_filtered)
+```
+the number of rest genes = 12291
+
+## DESeq2
+
+```{r}
+dds <- DESeqDataSetFromMatrix(
+  countData = counts_filtered,
+  colData = coldata,
+  design = ~ condition
+)
+
+dds <- DESeq(dds)
+res <- results(dds)
+
+summary(res)
+head(res)
+```
+上调基因：406 下调基因：200
+
+# Visulization
+
+```{r}
+res_df <- as.data.frame(res)
+res_df <- res_df[!is.na(res_df$padj), ]
+
+res_df$significance <- "Not Sig"
+res_df$significance[res_df$padj < 0.05 & res_df$log2FoldChange > 1] <- "Up"
+res_df$significance[res_df$padj < 0.05 & res_df$log2FoldChange < -1] <- "Down"
+
+ggplot(res_df, aes(x = log2FoldChange, y = -log10(padj))) +
+  geom_point(aes(color = significance), alpha = 0.6, size = 1.5) +
+  scale_color_manual(values = c("Up" = "red", "Down" = "blue", "Not Sig" = "grey")) +
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  labs(
+    title = "Volcano plot: SARS-CoV-2 vs Control (NHBE)",
+    x = "log2 Fold Change",
+    y = "-log10 adjusted p-value"
+  ) +
+  theme_minimal()
+```
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
