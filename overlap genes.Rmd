@@ -1,0 +1,161 @@
+---
+title: "overlap genes"
+author: "Meiyue Wang"
+date: "2026-05-12"
+output: html_document
+---
+
+1.读取 CSV
+```{r}
+up_NHBE <- read.csv("NHEB_SARS-CoV-2_Mock_up_regulated_genes.csv",row.names = 1)
+up_A549_ACE2 <- read.csv("A549-ACE2_SARS-CoV-2_Mock_up_regulated_genes.csv",row.names = 1)
+up_Calu3 <- read.csv("Calu3_SARS-CoV-2_Mock_up_regulated_genes.csv",row.names = 1)
+
+down_NHBE <- read.csv("NHEB_SARS-CoV-2_Mock_down_regulated_genes.csv",row.names = 1)
+down_A549_ACE2 <- read.csv("A549-ACE2_SARS-CoV-2_Mock_down_regulated_genes.csv",row.names = 1)
+down_Calu3 <- read.csv("Calu3_SARS-CoV-2_Mock_down_regulated_genes.csv",row.names = 1)
+```
+
+2.提取基因名
+```{r}
+genes_up_NHBE <- rownames(up_NHBE)
+genes_up_A549_ACE2 <- rownames(up_A549_ACE2)
+genes_up_Calu3 <- rownames(up_Calu3)
+
+genes_down_NHBE <- rownames(down_NHBE)
+genes_down_A549_ACE2 <- rownames(down_A549_ACE2)
+genes_down_Calu3 <- rownames(down_Calu3)
+
+```
+
+3.找共同上调和下调基因
+```{r}
+common_up <- Reduce(intersect, list(
+  genes_up_NHBE,
+  genes_up_A549_ACE2,
+  genes_up_Calu3
+))
+
+common_down <- Reduce(intersect, list(
+  genes_down_NHBE,
+  genes_down_A549_ACE2,
+  genes_down_Calu3
+))
+```
+
+4.查看结果
+```{r}
+length(common_up)
+common_up
+
+length(common_down)
+common_down
+```
+
+5.结果导出
+```{r}
+write.csv(data.frame(gene = common_up),
+          "common_up_genes.csv",
+          row.names = FALSE)
+
+write.csv(data.frame(gene = common_down),
+          "common_down_genes.csv",
+          row.names = FALSE)
+```
+
+6.画图
+```{r}
+install.packages("UpSetR")
+library(UpSetR)
+```
+```{r}
+gene_list <- list(
+  NHBE = genes_up_NHBE,
+  A549_ACE2 = genes_up_A549_ACE2,
+  Calu3 = genes_up_Calu3
+)
+pdf("upset_up_genes.pdf", width = 6, height = 5)
+upset(fromList(gene_list), order.by = "freq")
+
+
+dev.off()
+```
+
+```{r}
+gene_list <- list(
+  NHBE = genes_down_NHBE,
+  A549_ACE2 = genes_down_A549_ACE2,
+  Calu3 = genes_down_Calu3
+)
+pdf("upset_down_genes.pdf", width = 6, height = 5)
+upset(fromList(gene_list), order.by = "freq")
+
+
+dev.off()
+```
+
+
+
+```{r}
+install.packages("VennDiagram")
+library(VennDiagram)
+library(grid)
+venn.plot <- venn.diagram(
+  x = list(
+    NHBE = genes_up_NHBE,
+    A549_ACE2 = genes_up_A549_ACE2,
+    Calu3 = genes_up_Calu3
+  ),
+  
+  filename = NULL,  # 不直接保存，先画出来
+  
+  fill = c("#0072B2", "#D55E00", "#009E73"),
+  alpha = 0.5,       # 透明度
+  
+  cex = 1.5,         # 数字大小
+  cat.cex = 1.3,     # 标签大小
+  
+  cat.pos = c(0, 0, 180),  # 标签位置（可微调）
+  cat.dist = 0.05               # 标签距离圆的距离
+)
+
+grid.draw(venn.plot)
+```
+```{r}
+pdf("venn_up_genes.pdf", width = 6, height = 6)
+grid.draw(venn.plot)
+dev.off()
+```
+
+```{r}
+library(VennDiagram)
+library(grid)
+
+venn.plot.down <- venn.diagram(
+  x = list(
+    NHBE = genes_down_NHBE,
+    A549_ACE2 = genes_down_A549_ACE2,
+    Calu3 = genes_down_Calu3
+  ),
+  
+  filename = NULL,
+  
+  # 🎨 高对比颜色（和上调一致，便于对比）
+  fill = c("#0072B2", "#D55E00", "#009E73"),
+  alpha = 0.6,
+  
+  cex = 1.5,
+  cat.cex = 1.3,
+  
+  # 3组 → 3个位置
+  cat.pos = c(0, 0, 180),
+  cat.dist = 0.06,
+  
+  lwd = 2,
+  col = "black"
+)
+pdf("venn_down_genes.pdf", width = 6, height = 6)
+grid.draw(venn.plot.down)
+dev.off()
+```
+
