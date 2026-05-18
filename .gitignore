@@ -1,5 +1,4 @@
 .Rproj.user
-.Rproj
 .Rhistory
 .RData
 .Ruserdata
@@ -16,4 +15,5 @@ A549_SARS-CoV-2.Rmd
 A549-ACE2.Rmd
 NHEB_SARS-CoV-2.Rmd
 my first practice.Rmd
-NHBE SARS-CoV-2 RNA-seq analysis.Rmd
+NHBE SARS–CoV-2 RNA–seq analysis.Rmd
+NHBE SARS–CoV-2 RNA–seq analysis.Rproj
